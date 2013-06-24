@@ -48,7 +48,7 @@ NumSats= int
 Speed3D=int
 GroundSpeed=int
 GroundCourse=int
-wnR=int
+wnR=int 
 
 ## Initialize UART Port
 Port = serial.Serial()
