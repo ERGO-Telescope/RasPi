@@ -16,7 +16,7 @@ numEvent=0
 
 def Scale(value,factor):
     temp=str(value)
-    print temp
+    print (temp)
     newVal=temp[:(len(temp)-factor)]+'.'+temp[-factor:]
     return int(newVal)
                 
@@ -84,7 +84,7 @@ def loopFunc():
                         values={'pixel_ID': 1,
                                 'latitute': Scale(lat,7),
                                 'longitude': Scale(lon,7),
-                                'analog': 0;
+                                'analog': 0,
                                 'wnR': wnR,
                                 'towMsR': towMsR,
                                 'towSubMsR': towMsR}
