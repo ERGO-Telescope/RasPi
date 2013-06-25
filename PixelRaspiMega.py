@@ -2,7 +2,7 @@
 #coding=utf-8
 import serial
 import binascii
-import PiEtherMegaShield as shield
+import PixelRaspiShield as shield
 import numpy as np
 from urllib.request import Request, urlopen
 from urllib.error import  URLError
