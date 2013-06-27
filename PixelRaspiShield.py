@@ -19,9 +19,9 @@ setPRT2 = "B5 62 06 00 14 00 01 00 00 00 C0 08 00 00 00 C2 01 00 01 00 01 00 00 
 ##list or commands to be sent
 CmdList=[setPRT,setNavPOSLHH_Off, setNavSol_Off, setTIM2_Off, setRate_1000, setNavSol_On]
 ##declare variables
-ck_a= np.uint8
-ck_b= np.uint8
-step= np.uint8
+ck_a=0
+ck_b=0
+step= int
 UBX_Class=np.uint8
 UBX_ID=np.uint8
 UBX_length_hi=np.uint8
@@ -48,7 +48,8 @@ NumSats= int
 Speed3D=int
 GroundSpeed=int
 GroundCourse=int
-wnR=int 
+wnR=int
+UBX_ecefVZ=int
 
 ## Initialize UART Port
 Port = serial.Serial()
@@ -111,49 +112,60 @@ def EventFound():
     return ret
 def MessageRecieved():
     print("in Message Recieved")
+    count=0
     step=0
     NewMessage=False
     while Port.isOpen():
-        print("port is open")
-        print(step)
-        
+        #print("port is open")
+        count+=1
         data= binascii.hexlify(Port.read(1))
-        print (data)
+        
         for case in switch(step):
+            print (data)
             if case(0):
                 if data==b'b5':
                     print("case 0")
                     step+=1
                 break
             if case(1):
+                print ("case 1")
                 if data==b'62':
                     step+=1
+                    
                 else:
                     step=0
                 break
             if case(2):
+                print ("case 2")
+                global UBX_Class
+                
                 UBX_Class=data
                 Ubx_CheckSum(UBX_Class)
                 step+=1
-                print("case 2")
                 break
             if case(3):
+                print ('case 3')
+                global UBX_ID
                 UBX_ID=data
                 Ubx_CheckSum(UBX_ID)
                 step+=1
                 break
             if case(4):
                 print("case4")
+                global UBX_length_hi
                 UBX_length_hi=data
                 Ubx_CheckSum(UBX_length_hi)
                 step+=1
-                print(int(UBX_length_hi,16))
+                print(int(UBX_length_hi,16), UBX_MAX_SIZE)
                 if int(UBX_length_hi,16)>=UBX_MAX_SIZE:
+                    print (int(UBX_length_hi,16), 'case 4 tech')
                     step=0
                     ck_a=0
                     ck_b=0
                 break
             if case(5):
+                print('case 5')
+                global UBX_length_lo, UBX_counter
                 UBX_length_lo=data
                 Ubx_CheckSum(UBX_length_lo)
                 step+=1
@@ -161,27 +173,37 @@ def MessageRecieved():
                 print("case 5")
                 break
             if case(6):
-                print("case 6")
+                global UBX_counter, UBX_length_hi, UBX_buffer
+                print("case 6", UBX_counter,int(UBX_length_hi,16))
+                
                 if UBX_counter<int(UBX_length_hi,16):
+                    print('in 1st if')
                     UBX_buffer[UBX_counter]=data
                     Ubx_CheckSum(data)
                     UBX_counter+=1
-                    if UBX_counter==UBX_length_hi:
+                    if UBX_counter==int(UBX_length_hi,16):
+                        print('2nd if')
                         step+=1
                 break
             if case(7):
-                print("case 7")
+                global UBX_ck_a, ck_a
                 UBX_ck_a=data
+                print("case 7",ck_a, int(UBX_ck_a,16))
                 step+=1
                 break
             if case(8):
-                print("case 8")
+                global UBX_ck_b, UBX_ck_a, ck_a, ck_b
                 UBX_ck_b=data
-                if (ck_a==UBX_ck_a) and (ck_b==UBX_ck_b):
+                print("case 8",int(UBX_ck_b,16), int(UBX_ck_a,16), ck_a, ck_b)                
+                if (ck_a==int(UBX_ck_a,16)) and (ck_b==int(UBX_ck_b,16)):
                     step=0
                     ck_a=0
                     ck_b=0
                     ParseMessage();
+                else:
+                    step=0
+                    ck_a=0
+                    ck_b=0
                 break
             else:
                 print('no match')
@@ -189,6 +211,9 @@ def MessageRecieved():
     return NewMessage
 #End of Message Recieved
 def ParseMessage():
+    global UBX_Class, UBX_ID, UBX_buffer, lon, lat, height, hMSL, Fix3D, Speed3D
+    global UBX_ecefVZ, NumSats, GroundSpeed, GroundCourse, ch, flags, wnR, towMsR
+    global towSubMsR, checksum
     print("in ParseMessage")
     Position= int
     if UBX_Class== b'03':
@@ -251,7 +276,9 @@ def join4(buffer, position=int):
     toJoin=[]
     newPosition=position
     for i in range(position,position+4):
-        toJoin.append(buffer[newPosition])
+        #print(int(buffer[newPosition],16))
+        intOfByte=int(buffer[newPosition])
+        toJoin.append(intOfByte)
         newPosition+=1
     union=int.from_bytes(toJoin,byteorder='little',signed=True)  	
     return union
@@ -260,7 +287,8 @@ def join2(buffer, position=int):
     toJoin=[]
     newPosition=position
     for i in range(position,position+2):
-        toJoin.append(buffer[newPosition])
+        intOfByte=int(buffer[newPosition])
+        toJoin.append(intOfByte)
         newPosition+=1
     union=int.from_bytes(toJoin,byteorder='little',signed=True)		
     return union
@@ -268,15 +296,18 @@ def join2(buffer, position=int):
 def doneByte(buffer,position=int):
     toJoin=[]
     newPosition=position
-    toJoin.append(buffer[newPosition])
+    intOfByte=int(buffer[newPosition])
+    toJoin.append(intOfByte)
     union=int.from_bytes(toJoin,byteorder='little',signed=True)		
     return union
 
 def Ubx_CheckSum(ubx_data):
-    ck_a=0
+    global ck_a, ck_b
+    
     data=int(ubx_data,16)
     print(data)
     ck_a+=data
     print(ck_a)
-    ck_b=0
+    
     ck_b+=ck_a
+

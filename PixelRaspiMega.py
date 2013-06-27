@@ -95,8 +95,13 @@ def loopFunc():
                         NextState=6
                 break
             if case(6):
-                #some weird stuff
-                NextState=3
+                loop=0
+                if response.code == 200:
+                    NextState=3
+                loop+=1
+                if loop>1000:
+                    response.close()
+                    NextState=1
                 break
 
 loopFunc()
