@@ -18,7 +18,7 @@ def Scale(value,factor):
     temp=str(value)
     print (temp)
     newVal=temp[:(len(temp)-factor)]+'.'+temp[-factor:]
-    return int(newVal)
+    return float(newVal)
                 
 
 ##necessary switch function
@@ -44,7 +44,8 @@ class switch(object):
 ## Main loop function
 
 def loopFunc():
-    NextState=1
+    global numEvent,NextState,lat,lon, wnR, towMsR,towSubMsR
+    #NextState=1
     while True:
         State=NextState
         for case in switch(State):
@@ -63,36 +64,40 @@ def loopFunc():
                     numEvent+=1
                     NextState=4
                 break
-            #case 4-6 crypto stuff
+            
             if case(4):
                 NextState=5
                 break
             if case(5):#make call to server
-                url= Request('http://www.seti.net/php/setEvent.php')
-                try:
-                    response=urlopen(url)
-                except URLError as e:
-                    if hasattr(e,'reason'):
-                        print ('We failed to reach the server.')
-                        print ('Reason:',e.reason)
-                        NextState=1
-                    elif hasattr(e,'code'):
-                        print('The server couldn\'t fulfill the request')
-                        print ('Error code:', e.code)
-                        NextState=1
-                    else:
-                        values={'pixel_ID': 1,
-                                'latitute': Scale(lat,7),
-                                'longitude': Scale(lon,7),
-                                'analog': 0,
-                                'wnR': wnR,
-                                'towMsR': towMsR,
-                                'towSubMsR': towMsR}
-                        data=urllib.parse.urlencode(values)
-                        full_url=url+'?'+data
-                        response=urllib.request.urlopen(full_url)
-                        print (response.read())
-                        NextState=6
+                print ('case 5')
+                url= 'http://www.seti.net/php/setEvent.php'
+##                try:
+##                    print ('trying url')
+##                    response=urlopen(url)
+##                except URLError as e:
+##                    print('in except')
+##                    if hasattr(e,'reason'):
+##                        print ('We failed to reach the server.')
+##                        print ('Reason:',e.reason)
+##                        NextState=1
+##                    elif hasattr(e,'code'):
+##                        print('The server couldn\'t fulfill the request')
+##                        print ('Error code:', e.code)
+##                        NextState=1
+##                    else:
+                print('in else')
+                values={'pixel_ID': pixel_ID, #pixel_ID is not included in this code
+                        'latitute': Scale(lat,7),
+                        'longitude': Scale(lon,7),
+                        'analog': analog,
+                        'wnR': wnR,
+                        'towMsR': towMsR,
+                        'towSubMsR': towSubMsR}
+                data=urllib.parse.urlencode(values)
+                full_url=url+'?'+data
+                response=urllib.request.urlopen(full_url)
+                print (response.read())
+                NextState=6
                 break
             if case(6):
                 loop=0

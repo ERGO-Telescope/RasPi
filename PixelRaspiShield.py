@@ -106,6 +106,7 @@ def CollectPosition():
 def EventFound():
     ret=bool
     ret=False
+    print('in EventFound')
     if MessageReceived() ==True:
         if UBX_Class ==b'0d' and UBX_ID==b'03':
             ret=True
