@@ -8,11 +8,13 @@ from urllib.request import Request, urlopen
 from urllib.error import  URLError
 import urllib.parse
 import urllib.request
+import linecache
 #ignore
 
 
 #declare variables
 numEvent=0
+address='mac'
 
 def Scale(value,factor):
     temp=str(value)
@@ -44,13 +46,15 @@ class switch(object):
 ## Main loop function
 
 def loopFunc():
-    global numEvent,NextState,lat,lon, wnR, towMsR,towSubMsR
+    global numEvent,NextState,lat,lon, wnR, towMsR,towSubMsR, address
     #NextState=1
     while True:
         State=NextState
         for case in switch(State):
             if case(1):
                 print ("going to Shieldinit")
+                temp=(linecache.getline(cert.ini,9))
+                address= (temp[6:])
                 shield.ShieldInit()
                 NextState=2
                 break
@@ -86,7 +90,7 @@ def loopFunc():
 ##                        NextState=1
 ##                    else:
                 print('in else')
-                values={'pixel_ID': pixel_ID, #pixel_ID is not included in this code
+                values={'mac': address,
                         'latitute': Scale(lat,7),
                         'longitude': Scale(lon,7),
                         'analog': analog,
