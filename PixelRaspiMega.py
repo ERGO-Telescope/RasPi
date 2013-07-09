@@ -2,7 +2,7 @@
 #coding=utf-8
 import serial
 import binascii
-import PixelRaspiShield as shield
+import PixelRaspiShieldmod as shield
 import numpy as np
 from urllib.request import Request, urlopen
 from urllib.error import  URLError
@@ -46,14 +46,14 @@ class switch(object):
 ## Main loop function
 
 def loopFunc():
-    global numEvent,NextState,lat,lon, wnR, towMsR,towSubMsR, address
-    #NextState=1
+    global numEvent,lat,lon, wnR, towMsR,towSubMsR, address
+    NextState=1
     while True:
         State=NextState
         for case in switch(State):
             if case(1):
                 print ("going to Shieldinit")
-                temp=(linecache.getline(cert.ini,9))
+                temp=(linecache.getline('cert.ini',9))
                 address= (temp[6:])
                 shield.ShieldInit()
                 NextState=2
@@ -90,17 +90,19 @@ def loopFunc():
 ##                        NextState=1
 ##                    else:
                 print('in else')
-                values={'mac': address,
-                        'latitute': Scale(lat,7),
+                values={'mac': address}
+                values2={'latitute': Scale(lat,7), #need two dictionaries so that mac field goes first in url
                         'longitude': Scale(lon,7),
                         'analog': analog,
                         'wnR': wnR,
                         'towMsR': towMsR,
                         'towSubMsR': towSubMsR}
                 data=urllib.parse.urlencode(values)
-                full_url=url+'?'+data
+                data=data[:-3]
+                data2=urllib.parse.urlencode(values2)                
+                full_url=url+'?'+data+'&'+data2
                 response=urllib.request.urlopen(full_url)
-                print (response.read())
+                print (response.read().decode('utf-8'))
                 NextState=6
                 break
             if case(6):
