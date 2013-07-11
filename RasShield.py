@@ -85,12 +85,14 @@ class switch(object):
 def SendMsg(command):
     Port.write(bytes.fromhex(command))
     
+    
     return print ("command " +str(command)+" sent")
 def ShieldInit():
     Port.open()
     for cmd in CmdList:
         SendMsg(cmd)
-        time.sleep(5)
+        time.sleep(1)
+    Port.close()
 def CollectPosition():
     global NewMessage
     ret=bool
@@ -103,10 +105,10 @@ def CollectPosition():
         print (NewMessage)
         time.sleep(.1)
         Port.open()
-        if UBX_ID==b'06' and Fix3D:
+        if UBX_ID==b'06' and Fix3D: #wait for NAV SOL
             SendMsg(setNavSol_Off)
             Sendmsg(setNavPOSLHH_On)
-        if UBX_ID==b'02':
+        if UBX_ID==b'02':   #wait for first NAV POSLHH to come in
             SendMsg(setNavPOSLHH_Off)
             ret=True
         else:
@@ -117,6 +119,7 @@ def EventFound():
     ret=bool
     ret=False
     print('in EventFound')
+    MessageRecieved() #waiting for TM2 message
     if NewMessage ==True:
         if UBX_Class ==b'0d' and UBX_ID==b'03':
             ret=True
@@ -331,9 +334,8 @@ def doneByte(buffer,position=int):
     return union
 
 def Ubx_CheckSum(Buffer):
-    global ck_a, ck_b
-    
-    
+    global ck_a, ck_b    
+   
     for byte in Buffer:
         data=int(byte,16)
         ck_a=(ck_a+data)%256

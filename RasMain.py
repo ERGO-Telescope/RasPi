@@ -60,20 +60,25 @@ def loopFunc():
                 break
             if case(2):
                 if shield.CollectPosition():
-                    shield.SendMsg(setTIM2_On)
+                    
                     NextState=3
                 break
             if case(3):
-                if shield.EventFound():
-                    numEvent+=1
+                if shield.CollectPosition():
+                    shield.SendMsg(setTIM2_On)
                     NextState=4
                 break
-            
             if case(4):
-                NextState=5
+                if shield.EventFound():
+                    numEvent+=1
+                    NextState=5
                 break
-            if case(5):#make call to server
-                print ('case 5')
+            
+            if case(5):
+                NextState=6
+                break
+            if case(6):#make call to server
+                print ('case 6')
                 url= 'http://www.seti.net/php/setEvent.php'
 ##                try:
 ##                    print ('trying url')
@@ -105,7 +110,7 @@ def loopFunc():
                 print (response.read().decode('utf-8'))
                 NextState=6
                 break
-            if case(6):
+            if case(7):
                 loop=0
                 if response.code == 200:
                     NextState=3
