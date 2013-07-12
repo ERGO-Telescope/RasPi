@@ -2,7 +2,7 @@
 #coding=utf-8
 import serial
 import binascii
-import PixelRaspiShieldmod as shield
+import RasShield as shield
 import numpy as np
 from urllib.request import Request, urlopen
 from urllib.error import  URLError
@@ -15,6 +15,8 @@ import linecache
 #declare variables
 numEvent=0
 address='mac'
+setTIM2_On = "B5 62 06 01 08 00 0D 03 00 01 00 00 00 00 20 25"
+setTIM2_Off = "B5 62 06 01 08 00 0D 03 00 00 00 00 00 00 1F 20"
 
 def Scale(value,factor):
     temp=str(value)
@@ -47,38 +49,45 @@ class switch(object):
 
 def loopFunc():
     global numEvent,lat,lon, wnR, towMsR,towSubMsR, address
-    NextState=1
+    NextState=0
     while True:
         State=NextState
         for case in switch(State):
-            if case(1):
+            if case(0):
                 print ("going to Shieldinit")
-                temp=(linecache.getline('cert.ini',9))
+                temp=(linecache.getline('cert.ini',10))#10 for new birth certificate
+                
                 address= (temp[6:])
+                print (address)
                 shield.ShieldInit()
-                NextState=2
+                NextState=1
+                break
+            if case(1):
+                print ('case 1 of Main')
+                if shield.NAV_SOL_Received():
+                    
+                    NextState=2
                 break
             if case(2):
-                if shield.CollectPosition():
-                    
+                print ("in case 2 of Main")
+                if shield.NAV_POSLHH_Received():
+                    shield.SendMsg(setTIM2_On)
                     NextState=3
                 break
             if case(3):
-                if shield.CollectPosition():
-                    shield.SendMsg(setTIM2_On)
+                print ("in case 3 of Main")
+                if shield.EventFound():
+                    print ('in if')
+                    numEvent+=1
                     NextState=4
                 break
-            if case(4):
-                if shield.EventFound():
-                    numEvent+=1
-                    NextState=5
-                break
             
-            if case(5):
-                NextState=6
+            if case(4):
+                print ("in case 4 of Main")
+                NextState=5
                 break
-            if case(6):#make call to server
-                print ('case 6')
+            if case(5):#make call to server
+                print ('Posting data')
                 url= 'http://www.seti.net/php/setEvent.php'
 ##                try:
 ##                    print ('trying url')
@@ -94,14 +103,21 @@ def loopFunc():
 ##                        print ('Error code:', e.code)
 ##                        NextState=1
 ##                    else:
-                print('in else')
-                values={'mac': address}
-                values2={'latitute': Scale(lat,7), #need two dictionaries so that mac field goes first in url
-                        'longitude': Scale(lon,7),
-                        'analog': analog,
-                        'wnR': wnR,
-                        'towMsR': towMsR,
-                        'towSubMsR': towSubMsR}
+                lat=Scale(shield.lat,7)
+                lon=Scale(shield.lon,7)
+                print(lat, lon)
+                #need two dictionaries so that mac field goes first in url
+                values={'mac': address,
+                        'latitude':lat}
+                values2={'analog': 555,
+                    
+                        'longitude': lon,
+                        
+                        'wnR': shield.wnR,
+                        'towMsR': shield.towMsR,
+                        'towSubMsR': shield.towSubMsR}
+                ###########################
+                print(values2)
                 data=urllib.parse.urlencode(values)
                 data=data[:-3]
                 data2=urllib.parse.urlencode(values2)                
@@ -110,7 +126,7 @@ def loopFunc():
                 print (response.read().decode('utf-8'))
                 NextState=6
                 break
-            if case(7):
+            if case(6):
                 loop=0
                 if response.code == 200:
                     NextState=3

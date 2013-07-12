@@ -10,18 +10,19 @@ setRate_200 = "B5 62 06 08 06 00 C8 00 01 00 01 00 DE 6A"
 setRate_1000 = "B5 62 06 08 06 00 E8 03 01 00 01 00 01 39"
 setNavSol_Off = "B5 62 06 01 08 00 01 06 00 00 00 00 00 00 16 D5"
 setNavSol_On = "B5 62 06 01 08 00 01 06 00 01 00 00 00 00 17 DA"
-setNavPOSLHH_Off = "B5 62 06 01 08 00 01 02 00 00 00 00 00 12 B9" # Turn UART1 off
+setNavPOSLHH_Off = "B5 62 06 01 08 00 01 02 00 00 00 00 00 00 12 B9" # Turn UART1 off
 setNavPOSLHH_On = "B5 62 06 01 08 00 01 02 00 01 00 00 00 00 13 BE" # Turn UAER2 on
 setTIM2_On = "B5 62 06 01 08 00 0D 03 00 01 00 00 00 00 20 25"
 setTIM2_Off = "B5 62 06 01 08 00 0D 03 00 00 00 00 00 00 1F 20"
 
-setPRT = "B5 62 06 00 14 00 01 00 00 00 D0 08 00 00 00 C2 01 00 01 00 01 00 00 00 00 00 B8 42"
+setPRT = "B5 62 06 00 14 00 01 00 00 00 D0 08 00 00 00 96 00 00 01 00 01 00 00 00 00 00 7B 54"
+#setPRT = "B5 62 06 00 14 00 01 00 00 00 D0 08 00 00 00 C2 01 00 01 00 01 00 00 00 00 00 B8 42"
 setPRT2 = "B5 62 06 00 14 00 01 00 00 00 C0 08 00 00 00 C2 01 00 01 00 01 00 00 00 00 00 A8 42"
 ##list or commands to be sent
-CmdList=[setPRT,setNavPOSLHH_Off, setNavSol_Off, setTIM2_Off, setRate_1000, setNavSol_On]
+CmdList=[setPRT, setNavPOSLHH_Off, setNavSol_Off, setTIM2_Off, setRate_1000, setNavSol_On]
 ##declare variables
 ck_a=0
-ck_b=0
+ck_b=0 
 step= int
 UBX_Class=np.uint8
 UBX_ID=np.uint8
@@ -93,33 +94,66 @@ def ShieldInit():
         SendMsg(cmd)
         time.sleep(1)
     Port.close()
-def CollectPosition():
+
+def NAV_SOL_Received(): #Get position data from Nav-Sol
     global NewMessage
-    ret=bool
     ret=False
-    SatCount=int
     MessageRecieved()
-    print ('back in Collect position, turning port on')
-    
-    if NewMessage==True:
-        print (NewMessage)
+    if NewMessage == True:
         time.sleep(.1)
         Port.open()
         if UBX_ID==b'06' and Fix3D: #wait for NAV SOL
-            SendMsg(setNavSol_Off)
-            Sendmsg(setNavPOSLHH_On)
-        if UBX_ID==b'02':   #wait for first NAV POSLHH to come in
-            SendMsg(setNavPOSLHH_Off)
+            print("wait for NAV SOL")
             ret=True
+            SendMsg(setNavSol_Off)
+            SendMsg(setNavPOSLHH_On)
         else:
             ret=False
-        return ret
+    return ret
+
+def NAV_POSLHH_Received(): #Get position data from Nav-Sol
+    global NewMessage
+    ret=False
+    MessageRecieved()
+    if NewMessage == True:
+        time.sleep(.1)
+        Port.open()
+        if UBX_ID==b'02': #wait for NAV POSLHH
+            print("wait for NAV POSLHH")
+            ret=True
+            SendMsg(setNavPOSLHH_Off)
+            #SendMsg(setTIM2_On)
+    return ret
+            
+##def CollectPosition():
+##    global NewMessage
+##    ret=False
+##    SatCount=int
+##    MessageRecieved()
+##    print ('back in Collect position, turning port on')
+##    
+##    if NewMessage==True:
+##        print (UBX_ID)
+##        time.sleep(.1)
+##        Port.open()
+##        if UBX_ID==b'06' and Fix3D: #wait for NAV SOL
+##            print("wait for NAV SOL")
+##            SendMsg(setNavSol_Off)
+##            SendMsg(setNavPOSLHH_On)
+##        if UBX_ID==b'02':   #wait for first NAV POSLHH to come in
+##            print("wait for first NAV POSLHH to come in")
+##            SendMsg(setNavPOSLHH_Off)
+##            ret=True
+##        else:
+##            ret=False
+##    return ret
 def EventFound():
     global NewMessage
     ret=bool
     ret=False
     print('in EventFound')
     MessageRecieved() #waiting for TM2 message
+    print (UBX_Class, UBX_ID)
     if NewMessage ==True:
         if UBX_Class ==b'0d' and UBX_ID==b'03':
             ret=True
@@ -137,14 +171,14 @@ def MessageRecieved():
         data= binascii.hexlify(Port.read(1))
         
         for case in switch(step):
-            print (data)
+            #print (data)
             if case(0):
                 if data==b'b5':
-                    print("case 0")
+                    #print("case 0")
                     step+=1
                 break
             if case(1):
-                print ("case 1")
+                #print ("case 1")
                 if data==b'62':
                     step+=1
                     
@@ -152,7 +186,7 @@ def MessageRecieved():
                     step=0
                 break
             if case(2):
-                print ("case 2")
+                #print ("case 2")
                 global UBX_Class
                 UBX_Class=data
                 Buffer.append(data)
@@ -160,7 +194,7 @@ def MessageRecieved():
                 step+=1
                 break
             if case(3):
-                print ('case 3')
+                #print ('case 3')
                 global UBX_ID
                 UBX_ID=data
                 Buffer.append(data)
@@ -168,13 +202,13 @@ def MessageRecieved():
                 step+=1
                 break
             if case(4):
-                print("case4")
+                #print("case4")
                 global UBX_length_hi
                 UBX_length_hi=data
                 Buffer.append(data)
                 #Ubx_CheckSum(UBX_length_hi)
                 step+=1
-                print(int(UBX_length_hi,16), UBX_MAX_SIZE)
+                #print(int(UBX_length_hi,16), UBX_MAX_SIZE)
                 if int(UBX_length_hi,16)>=UBX_MAX_SIZE:
                     print (int(UBX_length_hi,16), 'case 4 tech')
                     step=0
@@ -182,7 +216,7 @@ def MessageRecieved():
                     ck_b=0
                 break
             if case(5):
-                print('case 5')
+                #print('case 5')
                 global UBX_length_lo, UBX_counter
                 UBX_length_lo=data
                 Buffer.append(data)
@@ -203,26 +237,27 @@ def MessageRecieved():
                 break
             if case(7):
                 global UBX_ck_a
-                UBX_ck_a=struct.unpack('B',binascii.unhexlify(data))[0]
+                UBX_ck_a=int(data,16)#struct.unpack('B',binascii.unhexlify(data))[0]
                 UBX_buffer[UBX_counter]=data
                 #UBX_ck_a=int(data,16)
-                print("case 7",UBX_ck_a)
+                #print("case 7",UBX_ck_a)
                 step+=1
                 break
             if case(8):
                 global UBX_ck_b, UBX_ck_a, ck_a, ck_b
-                UBX_ck_b=struct.unpack('B',binascii.unhexlify(data))[0]
+                UBX_ck_b=int(data,16)#struct.unpack('B',binascii.unhexlify(data))[0]
                 UBX_buffer[UBX_counter+1]=data
                 #UBX_ck_b=int(data,16)
                 Ubx_CheckSum(Buffer)
                 
-                print("case 8",'UBX_ck_b=',UBX_ck_b,'UBX_ck_a=',UBX_ck_a, ck_b, ck_a)
+                #print("case 8",'UBX_ck_b=',UBX_ck_b,'UBX_ck_a=',UBX_ck_a, ck_b, ck_a)
                      
                 if (ck_a== UBX_ck_a) and (ck_b== UBX_ck_b):
                     print('reseting')
                     step=0
                     ck_a=0
                     ck_b=0
+                    Buffer=[]
                     ParseMessage()
                     print ('back in message recieved')
                     Port.close()
@@ -243,35 +278,43 @@ def ParseMessage():
     global UBX_ecefVZ, NumSats, GroundSpeed, GroundCourse, ch, flags, wnR, towMsR
     global towSubMsR, checksum, NewMessage
     print("in ParseMessage")
+    #print(UBX_buffer)
     Position= int
-    if UBX_Class== b'03':
+    if UBX_Class== b'01':
         if UBX_ID==b'02': #I D N AV P O S L L H
+            print ("I D N AV P O S L L H")
             Position=0
             msTime= join4(UBX_buffer,Position)
             print("this is ms time",msTime)
             Position+=4
             lon= join4(UBX_buffer,Position)
+            print("this is lon",lon)
             Position+=4
             lat= join4(UBX_buffer,Position)
+            print("this is lat",lat)
             Position+=4
             height= join4(UBX_buffer,Position)
             Position+=4
             hMSL= join4(UBX_buffer,Position)
             NewMessage=True
-        if UBX_ID==b'03':#I D N A V - S O L
-            if UBX_buffer >=b'03' and (UBX_buffer[5]==b'01'):
-                Fix3D=True  #Valid position
-            else:
-                Fix3D=False #Invalid position       
+##        if UBX_ID==b'03':#I D N A V - S T A T U S
+##            print ("I D N A V - S T A T U S")
+##            if UBX_buffer[4] >=b'03' and (UBX_buffer[5]==b'01'):
+##                Fix3D=True  #Valid position
+##            else:
+##                Fix3D=False #Invalid position       
         if UBX_ID==b'06': #I D N A V S O L
-            if UBX_buffer[10]>= b'03' and (UBX_buffer[11]==b'01'):
+            print ("I D N A V - S O L", UBX_buffer[10],UBX_buffer[11])
+            if UBX_buffer[10]>= b'03' and (UBX_buffer[11]==b'dd'):#01
                 Fix3D=True  #Valid position
             else:
                 Fix3D=False #Invalid position
             UBX_ecefVZ=join4(UBX_buffer,36)
             NumSats=UBX_buffer[47]
             NewMessage= True
+            print (Fix3D)
         if UBX_ID== b'12':  #I D N A V V E L N E D
+            print ("I D N A V V E L N E D")
             Position=16
             Speed3D=join4(UBX_buffer,Position) #cm/s
             print ("this is speed3d",Speed3D)
@@ -291,7 +334,7 @@ def ParseMessage():
 
     if UBX_Class==b'0d': #TIM
         if UBX_ID==b'03':
-            print(UBX_Class,UBX_ID)
+            print("TIM")
             ch=doneByte(UBX_buffer,0)
             flags=doneByte(UBX_buffer,1)
             wnR=join2(UBX_buffer,4)
