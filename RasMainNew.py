@@ -20,6 +20,7 @@ setTIM2_On = "B5 62 06 01 08 00 0D 03 00 01 00 00 00 00 20 25"
 setTIM2_Off = "B5 62 06 01 08 00 0D 03 00 00 00 00 00 00 1F 20"
 setNavSol_Off = "B5 62 06 01 08 00 01 06 00 00 00 00 00 00 16 D5"
 setNavSol_On = "B5 62 06 01 08 00 01 06 00 01 00 00 00 00 17 DA"
+loop= int
 
 def Scale(value,factor):
     temp=str(value)
@@ -57,7 +58,7 @@ class switch(object):
 ## Main loop function
 
 def loopFunc():
-    global numEvent,lat,lon, wnR, towMsR,towSubMsR, address
+    global numEvent,lat,lon, wnR, towMsR,towSubMsR, address, loop
     NextState=0
     while True:
         State=NextState
@@ -77,6 +78,7 @@ def loopFunc():
                 break
             if case(1):
                 print ('case 1 of Main')
+                loop=0
                 if shield.NAV_SOL_Received():
                     #shield.SendMsg(setNavSol_Off)
                     NextState=2
@@ -139,14 +141,16 @@ def loopFunc():
                 NextState=6
                 break
             if case(6):
-                loop=0
+                
                 if response.code == 200:
                     #shield.SendMsg(setNavSol_On)
                     NextState=1
-                loop+=1
-                if loop>1000:
+                
+                if loop>50:
+                    loop+=1
                     response.close()
                     NextState=1
+                
                 break
 
 loopFunc()
